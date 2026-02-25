@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI SEO 決策與內容自動化平台</title>
+    <script type="text/javascript" src="https://ssl.gstatic.com/trends_nrtr/4356_RC01/embed_loader.js"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <style>
+      .loader { border-top-color: #2563eb; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
+      @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      .checkbox-custom:checked + div { border-color: #4f46e5; background-color: #eff6ff; }
+      .checkbox-custom:checked + div .check-icon { display: block; }
+      
+      .trend-widget-container { 
+        width: 100%; 
+        height: 400px; 
+        margin-bottom: 1rem; 
+        border-radius: 0.5rem; 
+        overflow-y: auto; 
+        -webkit-overflow-scrolling: touch; 
+        background: #fff; 
+        box-shadow: inset 0 1px 4px rgba(0,0,0,0.1); 
+        border: 1px solid #e2e8f0;
+      }
+      .trend-widget-container iframe { 
+        width: 100% !important; 
+        min-height: 100% !important; 
+        border: none; 
+      }
+      .btn-disabled { opacity: 0.5; cursor: not-allowed; }
+    </style>
+  </head>
+  <body class="bg-slate-50 p-3 md:p-6 font-sans text-gray-800 pb-32">
+    <div class="max-w-3xl mx-auto bg-white p-5 md:p-8 rounded-2xl shadow-xl border border-gray-100">
+      
+      <div class="text-center mb-6">
+        <h1 class="text-2xl md:text-3xl font-extrabold mb-2 text-gray-900">🚀 AI 企業級 SEO 內容決策矩陣</h1>
+        <p class="text-sm text-gray-500 flex flex-col space-y-1">
+          <span>Phase 1：大數據預估</span>
+          <span class="font-bold text-indigo-600">Phase 1.5：GKP 真實數據收斂</span>
+          <span>Phase 2：跨通路內容生成</span>
+        </p>
+      </div>
+
+      <div id="systemToast" class="hidden fixed top-5 left-1/2 transform -translate-x-1/2 z-50 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl font-bold text-sm transition-opacity duration-300 w-11/12 max-w-md text-center"></div>
+
+      <div class="flex flex-col space-y-4 mb-8 bg-indigo-50/50 p-5 rounded-xl border border-indigo-100">
+        <div class="flex flex-col space-y-2">
+          <label class="text-sm font-bold text-gray-700">產業 / 產品 / 服務</label>
+          <input type="text" id="industry" class="w-full rounded-lg border-gray-300 shadow-sm p-3 border focus:border-indigo-600 outline-none" placeholder="例如：營養師減重、品牌顧問...">
+        </div>
+        
+        <div class="flex flex-col space-y-2">
+          <label class="text-sm font-bold text-gray-700">客戶痛點 / 情境</label>
+          <input type="text" id="painPoint" class="w-full rounded-lg border-gray-300 shadow-sm p-3 border focus:border-indigo-600 outline-none" placeholder="例如：花了錢沒成效的老闆...">
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+          <div class="flex flex-col space-y-2">
+            <label class="text-sm font-bold text-gray-700">主關鍵字數量</label>
+            <input type="number" id="mainCount" class="w-full rounded-lg border-gray-300 shadow-sm p-3 border focus:border-indigo-600 outline-none" value="4" min="1" max="10">
+          </div>
+          <div class="flex flex-col space-y-2">
+            <label class="text-sm font-bold text-gray-700">長尾詞數量</label>
+            <input type="number" id="longCount" class="w-full rounded-lg border-gray-300 shadow-sm p-3 border focus:border-indigo-600 outline-none" value="6" min="1" max="15">
+          </div>
+        </div>
+
+        <button onclick="generateKeywords()" class="w-full bg-indigo-600 text-white font-bold py-4 px-4 rounded-lg hover:bg-indigo-700 transition shadow-md mt-2">
+          🔍 執行 Phase 1：AI 大數據預估與發散
+        </button>
+      </div>
+
+      <div id="loading1" class="hidden flex flex-col justify-center items-center my-12">
+        <div class="loader ease-linear rounded-full border-4 border-t-4 border-indigo-500 h-12 w-12 mb-4"></div>
+        <p class="text-indigo-600 text-sm font-bold animate-pulse text-center">Gemini 正在調用大數據分析...</p>
+      </div>
+
+      <div id="keywordResults" class="hidden flex flex-col space-y-6">
+        
+        <div class="bg-indigo-50 border border-indigo-200 p-5 rounded-xl shadow-sm flex flex-col space-y-4">
+          <div>
+            <h3 class="font-black text-indigo-900 mb-1 flex items-center text-lg"><span class="mr-2">📊</span> 步驟 1.5：GKP 數據對校 (一鍵複製全部字詞)</h3>
+            <p class="text-sm text-indigo-700 leading-relaxed">點擊下方按鈕，系統將自動提取「所有主關鍵字、長尾關鍵字及其核心拆解詞」，供您無縫貼入查詢真實數據。</p>
+          </div>
+          <button id="copyGKPBtn" onclick="copyAndOpenGKP()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-5 rounded-lg shadow-md transition flex items-center justify-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+            <span id="copyGKPText">複製全部核心詞並開啟 Keyword Planner</span>
+          </button>
+        </div>
+
+        <div class="bg-white border-2 border-dashed border-indigo-200 p-5 rounded-xl">
+          <h3 class="text-lg font-bold text-indigo-900 mb-2">📥 將 GKP 數據貼在此處</h3>
+          <p class="text-xs text-gray-500 mb-4 leading-relaxed">支援直接貼上最高 5000 列表格數據。AI 將自動清洗、濃縮，淘金出最高商業價值的字詞。</p>
+          <textarea id="gkpPasteArea" class="w-full h-32 rounded-lg border-gray-300 shadow-sm p-3 border focus:border-indigo-600 outline-none text-sm text-gray-700 mb-4" placeholder="請在此貼上表格... (Keyword, Avg. monthly searches...)"></textarea>
+          <button onclick="analyzeGKPDataFlow()" class="w-full bg-emerald-600 text-white font-bold py-4 px-4 rounded-lg hover:bg-emerald-700 transition shadow-md">
+            ✨ 分析真實數據，篩選黃金字詞
+          </button>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 text-blue-800 text-xs p-3 rounded-lg shadow-sm leading-relaxed">
+          <span class="font-bold">💡 自動排序：</span> 1. 趨勢最高 ➡️ 2. 競爭最低 ➡️ 3. 搜尋量最大。
+        </div>
+
+        <div class="flex flex-col space-y-4">
+          <h2 class="text-xl font-bold text-gray-800 border-b border-gray-200 pb-2">🔥 AI 預估 - 主要關鍵字</h2>
+          <div id="mainKeywords" class="grid grid-cols-1 gap-5"></div>
+        </div>
+
+        <div class="flex flex-col space-y-4">
+          <h2 class="text-xl font-bold text-gray-800 border-b border-gray-200 pb-2">🎯 AI 預估 - 精準長尾關鍵字</h2>
+          <div id="longtailKeywords" class="grid grid-cols-1 gap-5"></div>
+        </div>
+      </div>
+
+      <div id="loadingGkp" class="hidden flex flex-col justify-center items-center my-12 border-t border-gray-100 pt-8">
+        <div class="loader ease-linear rounded-full border-4 border-t-4 border-emerald-500 h-12 w-12 mb-4"></div>
+        <p class="text-emerald-600 text-sm font-bold animate-pulse text-center">正在清洗高達千筆數據，淘金精選中...</p>
+      </div>
+
+      <div id="gkpAnalyzedResults" class="hidden mt-8 pt-8 border-t-2 border-emerald-100 flex flex-col space-y-4">
+        <h2 class="text-xl font-black text-emerald-800 mb-2 border-b border-emerald-200 pb-2">💎 GKP 真實數據淘金結果</h2>
+        <div id="gkpCardsContainer" class="grid grid-cols-1 gap-5"></div>
+      </div>
+
+      <div id="customKwSection" class="hidden mt-8 bg-indigo-50 border border-indigo-100 rounded-xl p-5 shadow-inner flex flex-col space-y-3">
+        <h3 class="text-lg font-bold text-indigo-900 flex items-center"><span class="mr-2">✍️</span> 新增自訂關鍵字</h3>
+        <input type="text" id="customKwInput" onkeydown="handleCustomKeyword(event)" class="w-full rounded-lg border-gray-300 shadow-sm p-3 border focus:border-indigo-500 outline-none text-sm" placeholder="輸入字詞後按 Enter...">
+        <div id="customKwContainer" class="flex flex-wrap gap-2 mt-2"></div>
+      </div>
+
+      <div id="loading2" class="hidden flex flex-col justify-center items-center my-12 pt-8 border-t border-gray-100">
+        <div class="loader ease-linear rounded-full border-4 border-t-4 border-purple-500 h-12 w-12 mb-4"></div>
+        <p class="text-purple-600 text-sm font-bold animate-pulse text-center">正在構建 70 大全通路佈局提案矩陣 (含 30 篇排行)...</p>
+      </div>
+
+      <div id="strategyResults" class="hidden mt-10 pt-10 border-t-2 border-dashed border-gray-200 flex flex-col space-y-8">
+        <h2 class="text-2xl font-black text-indigo-900 text-center mb-2">🏆 Phase 2：全通路內容矩陣</h2>
+        
+        <div class="flex flex-col">
+          <h3 class="text-lg font-bold bg-gray-800 text-white p-3 rounded-t-lg">🌐 官方網站 10 大 SEO 策略</h3>
+          <div class="bg-gray-50 p-4 rounded-b-lg border border-gray-200 flex flex-col space-y-4">
+            <div>
+              <h4 class="font-bold text-gray-700 mb-1">架構建議：</h4>
+              <p id="webArch" class="text-sm text-gray-600 leading-relaxed"></p>
+            </div>
+            <div>
+              <h4 class="font-bold text-gray-700 mb-1">標籤佈局：</h4>
+              <p id="webSeo" class="text-sm text-gray-600 leading-relaxed"></p>
+            </div>
+            <div class="border-t pt-3 border-gray-200">
+              <h4 class="font-bold text-gray-900 mb-2">🚀 10 項具體做法：</h4>
+              <ul id="webTactics" class="list-decimal pl-5 space-y-2 text-sm text-gray-700"></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col">
+          <div class="bg-blue-600 text-white p-3 rounded-t-lg flex justify-between items-center">
+            <h3 class="text-lg font-bold">✍️ 部落格 30 大企劃 (依質量排名)</h3>
+          </div>
+          <div class="bg-blue-50/30 p-4 border-x border-blue-100 flex flex-col space-y-4" id="blogProposalsContainer"></div>
+          <div class="bg-blue-100 border-b border-x border-blue-200 rounded-b-lg p-3 flex justify-between items-center">
+            <button onclick="changeBlogPage(-1)" id="btnBlogPrev" class="text-sm font-bold bg-white text-blue-700 px-4 py-2 rounded shadow-sm hover:bg-blue-50 transition">上一頁</button>
+            <span class="text-sm font-bold text-blue-900">第 <span id="blogCurrentPageTxt">1</span> / 3 頁</span>
+            <button onclick="changeBlogPage(1)" id="btnBlogNext" class="text-sm font-bold bg-white text-blue-700 px-4 py-2 rounded shadow-sm hover:bg-blue-50 transition">下一頁</button>
+          </div>
+        </div>
+
+        <div class="flex flex-col">
+          <div class="bg-pink-600 text-white p-3 rounded-t-lg flex justify-between items-center">
+            <h3 class="text-lg font-bold">📱 FB/IG 社群 30 大提案 (依潛力排名)</h3>
+          </div>
+          <div class="bg-pink-50/30 p-4 border-x border-pink-100 flex flex-col space-y-4" id="socialProposalsContainer"></div>
+          <div class="bg-pink-100 border-b border-x border-pink-200 rounded-b-lg p-3 flex justify-between items-center">
+            <button onclick="changeSocialPage(-1)" id="btnSocialPrev" class="text-sm font-bold bg-white text-pink-700 px-4 py-2 rounded shadow-sm hover:bg-pink-50 transition">上一頁</button>
+            <span class="text-sm font-bold text-pink-900">第 <span id="socialCurrentPageTxt">1</span> / 3 頁</span>
+            <button onclick="changeSocialPage(1)" id="btnSocialNext" class="text-sm font-bold bg-white text-pink-700 px-4 py-2 rounded shadow-sm hover:bg-pink-50 transition">下一頁</button>
+          </div>
+        </div>
+      </div>
+      
+      <div id="errorBox" class="hidden text-red-500 bg-red-50 p-5 rounded-xl border border-red-200 mt-6 font-bold text-sm text-center leading-relaxed"></div>
+    </div>
+
+    <div id="actionActionBar" class="fixed bottom-0 left-0 w-full bg-white border-t shadow-[0_-10px_30px_rgba(0,0,0,0.15)] p-4 transform translate-y-full transition-transform duration-300 flex flex-col justify-center items-center z-50">
+      <div class="flex flex-col w-full max-w-3xl mx-auto space-y-2">
+        <span class="text-gray-700 font-bold text-center text-sm">已選擇 <span id="selectedCount" class="text-indigo-600 text-lg font-black">0</span> 個關鍵字</span>
+        <button onclick="generateStrategy()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black py-4 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition shadow-lg text-sm md:text-base">
+          ⚡ 立即生成 70 項全通路內容矩陣 (含30篇排行)
+        </button>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      // 🌟 這裡填入你發布的 Google Apps Script Web App 網址
+      const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwb3PXu7R1iyF8vOXwaVQg5DShZaF-1RVNL-MBrLX3i_7moaZhgxwziDElyZJ_BzOzlaw/exec';
+
+      let selectedKeywordsList = [];
+      let customKeywordsList = []; 
+      let allGeneratedKeywordsForGKP = []; 
+      let trendWidgetIdCounter = 0; 
+
+      let globalBlogData = [];
+      let globalSocialData = [];
+      let currentBlogPage = 1;
+      let currentSocialPage = 1;
+      const itemsPerPage = 10;
+
+      function showToast(message, isError) {
+        const toast = document.getElementById('systemToast');
+        toast.innerText = message;
+        toast.className = 'fixed top-5 left-1/2 transform -translate-x-1/2 z-50 px-5 py-3 rounded-full shadow-2xl font-bold text-sm transition-opacity duration-300 w-11/12 max-w-md text-center text-white';
+        if(isError) {
+            toast.classList.add('bg-red-600');
+        } else {
+            toast.classList.add('bg-gray-900');
+        }
+        toast.classList.remove('hidden');
+        setTimeout(function(){ toast.classList.add('hidden'); }, 4000);
+      }
+
+      function copyAndOpenGKP() {
+        if (allGeneratedKeywordsForGKP.length === 0) return;
+        const textToCopy = allGeneratedKeywordsForGKP.join(String.fromCharCode(10)); 
+        
+        navigator.clipboard.writeText(textToCopy).then(function() {
+          const btnText = document.getElementById('copyGKPText');
+          const originalText = btnText.innerText;
+          btnText.innerText = '✅ 全部複製成功！請貼入新分頁';
+          document.getElementById('copyGKPBtn').classList.replace('bg-indigo-600', 'bg-green-600');
+          
+          setTimeout(function() {
+            btnText.innerText = originalText;
+            document.getElementById('copyGKPBtn').classList.replace('bg-green-600', 'bg-indigo-600');
+          }, 4000);
+
+          window.open('https://ads.google.com/aw/keywordplanner/ideas/new', '_blank');
+        }).catch(function(err) {
+          showToast('自動複製失敗，請手動複製。', true);
+        });
+      }
+
+      function copyGeneratedContent(elementId, btnElement) {
+        const contentDiv = document.getElementById(elementId);
+        if (!contentDiv) return;
+
+        try {
+          const selection = window.getSelection();
+          const range = document.createRange();
+          range.selectNodeContents(contentDiv);
+          selection.removeAllRanges();
+          selection.addRange(range);
+
+          document.execCommand('copy');
+          selection.removeAllRanges();
+
+          const originalHTML = btnElement.innerHTML;
+          btnElement.innerHTML = '✅ 複製成功！(已保留排版)';
+          btnElement.classList.replace('bg-indigo-600', 'bg-green-600');
+          btnElement.classList.replace('hover:bg-indigo-700', 'hover:bg-green-700');
+          
+          setTimeout(function() {
+            btnElement.innerHTML = originalHTML;
+            btnElement.classList.replace('bg-green-600', 'bg-indigo-600');
+            btnElement.classList.replace('hover:bg-green-700', 'hover:bg-indigo-700');
+          }, 2000);
+        } catch(err) {
+          showToast('複製失敗，請手動全選複製。', true);
+        }
+      }
+
+      function renderInlineTrends(keywordEncoded, timeRange, containerId) {
+        const keyword = decodeURIComponent(keywordEncoded);
+        const container = document.getElementById(containerId);
+        
+        container.classList.remove('hidden');
+        container.innerHTML = '<div class="w-full p-6 flex flex-col items-center justify-center bg-indigo-50/30 rounded-lg border border-indigo-100 mt-4 shadow-sm"><div class="loader ease-linear rounded-full border-2 border-t-2 border-indigo-500 h-8 w-8 mb-3"></div><span class="text-xs text-indigo-700 font-bold animate-pulse text-center leading-relaxed">正在向 Google 請求大數據...<br>(圖表將依序載入，請稍候)</span></div>';
+
+        const exploreQuery = "geo=TW&q=" + keywordEncoded + "&date=" + timeRange;
+        const comparisonItem = [{"keyword": keyword, "geo": "TW", "time": timeRange}];
+        
+        setTimeout(function() {
+          container.innerHTML = '<div class="mt-4 bg-slate-100 p-3 md:p-4 rounded-xl border border-slate-300 flex flex-col space-y-4 shadow-xl relative trends-panel-content"><div class="text-sm font-black text-indigo-900 border-b border-slate-300 pb-3 flex justify-between items-center sticky top-0 z-10"><span>📊 ' + keyword + ' - 實時戰情面板</span><button type="button" onclick="document.getElementById(\'' + containerId + '\').classList.add(\'hidden\'); event.stopPropagation();" class="text-xs bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1.5 rounded shadow-sm transition font-bold flex items-center">✖ 收合</button></div><div class="flex flex-col space-y-4"><div class="trend-widget-container" id="' + containerId + '-ts"></div><div class="trend-widget-container" id="' + containerId + '-geo"></div><div class="trend-widget-container" id="' + containerId + '-topic"></div><div class="trend-widget-container" id="' + containerId + '-query"></div></div><button type="button" onclick="document.getElementById(\'' + containerId + '\').classList.add(\'hidden\'); event.stopPropagation();" class="w-full text-sm bg-slate-200 text-slate-700 hover:bg-slate-300 py-3 rounded shadow-sm transition font-bold mt-2">⏏️ 關閉面板</button></div>';
+
+          try {
+            setTimeout(function() { trends.embed.renderExploreWidgetTo(document.getElementById(containerId + "-ts"), "TIMESERIES", {"comparisonItem":comparisonItem,"category":0,"property":""}, {"exploreQuery":exploreQuery,"guestPath":"https://trends.google.com.tw:443/trends/embed/"}); }, 100);
+            setTimeout(function() { trends.embed.renderExploreWidgetTo(document.getElementById(containerId + "-geo"), "GEO_MAP", {"comparisonItem":comparisonItem,"category":0,"property":""}, {"exploreQuery":exploreQuery,"guestPath":"https://trends.google.com.tw:443/trends/embed/"}); }, 900);
+            setTimeout(function() { trends.embed.renderExploreWidgetTo(document.getElementById(containerId + "-topic"), "RELATED_TOPICS", {"comparisonItem":comparisonItem,"category":0,"property":""}, {"exploreQuery":exploreQuery,"guestPath":"https://trends.google.com.tw:443/trends/embed/"}); }, 1700);
+            setTimeout(function() { trends.embed.renderExploreWidgetTo(document.getElementById(containerId + "-query"), "RELATED_QUERIES", {"comparisonItem":comparisonItem,"category":0,"property":""}, {"exploreQuery":exploreQuery,"guestPath":"https://trends.google.com.tw:443/trends/embed/"}); }, 2500);
+          } catch (e) {
+            container.innerHTML = '<div class="p-3 text-red-500 text-xs font-bold bg-red-50 rounded mt-2 text-center">圖表載入受到限制，請稍後重試。</div>';
+          }
+        }, 300);
+      }
+
+      function handleCustomKeyword(event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          const val = event.target.value.trim();
+          if (val && customKeywordsList.indexOf(val) === -1) {
+            customKeywordsList.push(val);
+            renderCustomKeywords();
+            updateActionBar();
+          }
+          event.target.value = '';
+        }
+      }
+
+      function removeCustomKeyword(val) {
+        customKeywordsList = customKeywordsList.filter(function(k) { return k !== val; });
+        renderCustomKeywords();
+        updateActionBar();
+      }
+
+      function renderCustomKeywords() {
+        const container = document.getElementById('customKwContainer');
+        container.innerHTML = customKeywordsList.map(function(kw) {
+          return '<span class="inline-flex items-center bg-indigo-600 text-white text-xs font-bold px-3 py-2 rounded-full shadow-sm">' + kw + '<button type="button" onclick="removeCustomKeyword(\'' + kw + '\')" class="ml-2 hover:text-indigo-200 focus:outline-none font-bold">&times;</button></span>';
+        }).join('');
+      }
+
+      function toggleKeyword(checkbox) {
+        if (checkbox && checkbox.checked) {
+          selectedKeywordsList.push(checkbox.value);
+        } else if (checkbox) {
+          selectedKeywordsList = selectedKeywordsList.filter(function(k) { return k !== checkbox.value; });
+        }
+        updateActionBar();
+      }
+
+      function updateActionBar() {
+        const total = selectedKeywordsList.length + customKeywordsList.length;
+        document.getElementById('selectedCount').innerText = total;
+        const actionBar = document.getElementById('actionActionBar');
+        if (total > 0) actionBar.classList.remove('translate-y-full');
+        else actionBar.classList.add('translate-y-full');
+      }
+
+      function parseTrend(str) {
+        if (!str) return 0;
+        let match = str.match(new RegExp('([+-]?\\d+)'));
+        if (match) return parseInt(match[0], 10);
+        if (str.indexOf('升') !== -1 || str.indexOf('成長') !== -1) return 5;
+        if (str.indexOf('降') !== -1 || str.indexOf('衰退') !== -1) return -5;
+        return 0;
+      }
+      function parseComp(str) {
+        if (!str) return 2;
+        if (str.indexOf('低') !== -1) return 1;
+        if (str.indexOf('中') !== -1) return 2;
+        if (str.indexOf('高') !== -1) return 3;
+        return 2;
+      }
+      function parseVol(str) {
+        if (!str) return 0;
+        let v = str.split(',').join('');
+        if (v.indexOf('萬') !== -1) {
+          let m = v.match(new RegExp('(\\d+)萬'));
+          if (m) return parseInt(m[1], 10) * 10000;
+        }
+        let m = v.match(new RegExp('(\\d+)'));
+        return m ? parseInt(m[0], 10) : 0;
+      }
+      
+      function sortAlgorithm(arr) {
+        return arr.sort(function(a, b) {
+          let tA = parseTrend(a.metrics.trend_3m);
+          let tB = parseTrend(b.metrics.trend_3m);
+          if (tA !== tB) return tB - tA;
+          let cA = parseComp(a.metrics.competition);
+          let cB = parseComp(b.metrics.competition);
+          if (cA !== cB) return cA - cB;
+          let vA = parseVol(a.metrics.volume);
+          let vB = parseVol(b.metrics.volume);
+          return vB - vA;
+        });
+      }
+
+      // 改用 fetch 呼叫後端 API
+      function generateKeywords() {
+        const industry = document.getElementById('industry').value;
+        const painPoint = document.getElementById('painPoint').value;
+        const mainCount = document.getElementById('mainCount').value;
+        const longCount = document.getElementById('longCount').value;
+
+        if(!industry || !painPoint) { showToast('請先填寫產業與客戶痛點！', true); return; }
+
+        document.getElementById('loading1').classList.remove('hidden');
+        document.getElementById('keywordResults').classList.add('hidden');
+        document.getElementById('gkpAnalyzedResults').classList.add('hidden');
+        document.getElementById('customKwSection').classList.add('hidden');
+        document.getElementById('strategyResults').classList.add('hidden');
+        document.getElementById('errorBox').classList.add('hidden');
+        
+        selectedKeywordsList = [];
+        customKeywordsList = []; 
+        allGeneratedKeywordsForGKP = []; 
+        renderCustomKeywords();
+        updateActionBar();
+
+        fetch(WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'generateKeywords', industry, painPoint, mainCount, longCount })
+        })
+        .then(response => response.text())
+        .then(displayKeywords)
+        .catch(showError);
+      }
+
+      function displayKeywords(responseString) {
+        document.getElementById('loading1').classList.add('hidden');
+        try {
+          const data = JSON.parse(responseString);
+          if(data.error) throw new Error(data.error);
+
+          const sortedMain = sortAlgorithm([].concat(data.main_keywords));
+          const sortedLong = sortAlgorithm([].concat(data.longtail_keywords));
+
+          let extractionPool = [];
+          
+          data.main_keywords.forEach(function(item) {
+            extractionPool.push({ word: item.keyword, metrics: item.metrics });
+          });
+          
+          data.longtail_keywords.forEach(function(item) {
+            extractionPool.push({ word: item.keyword, metrics: item.metrics });
+            if (item.core_keywords && item.core_keywords.length > 0) {
+              item.core_keywords.forEach(function(coreWord) {
+                extractionPool.push({ word: coreWord, metrics: item.metrics });
+              });
+            }
+          });
+
+          extractionPool.sort(function(a, b) {
+            let tA = parseTrend(a.metrics.trend_3m);
+            let tB = parseTrend(b.metrics.trend_3m);
+            if (tA !== tB) return tB - tA;
+            let cA = parseComp(a.metrics.competition);
+            let cB = parseComp(b.metrics.competition);
+            if (cA !== cB) return cA - cB;
+            let vA = parseVol(a.metrics.volume);
+            let vB = parseVol(b.metrics.volume);
+            return vB - vA;
+          });
+
+          let allWords = [];
+          for (let i = 0; i < extractionPool.length; i++) {
+            let w = extractionPool[i].word;
+            if (allWords.indexOf(w) === -1) {
+              allWords.push(w);
+            }
+          }
+          
+          allGeneratedKeywordsForGKP = allWords;
+
+          document.getElementById('mainKeywords').innerHTML = sortedMain.map(function(k){ return createKeywordCard(k, 'main', false); }).join('');
+          document.getElementById('longtailKeywords').innerHTML = sortedLong.map(function(k){ return createKeywordCard(k, 'long', false); }).join('');
+          
+          document.getElementById('keywordResults').classList.remove('hidden');
+          document.getElementById('customKwSection').classList.remove('hidden');
+        } catch (e) { 
+          showError("AI 回傳的資料異常，建議調降數量再試一次。"); 
+        }
+      }
+
+      function analyzeGKPDataFlow() {
+        const pastedData = document.getElementById('gkpPasteArea').value;
+        const industry = document.getElementById('industry').value;
+        const painPoint = document.getElementById('painPoint').value;
+
+        if (!pastedData.trim()) { showToast('請先貼上從 Google Keyword Planner 複製的表格數據！', true); return; }
+        
+        document.getElementById('loadingGkp').classList.remove('hidden');
+        document.getElementById('gkpAnalyzedResults').classList.add('hidden');
+        document.getElementById('errorBox').classList.add('hidden');
+        
+        window.scrollTo({ top: document.getElementById('loadingGkp').offsetTop - 20, behavior: 'smooth' });
+
+        fetch(WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'analyzeGKPData', pastedData, industry, painPoint })
+        })
+        .then(response => response.text())
+        .then(displayGkpResults)
+        .catch(showError);
+      }
+
+      function displayGkpResults(responseString) {
+        document.getElementById('loadingGkp').classList.add('hidden');
+        try {
+          const data = JSON.parse(responseString);
+          if(data.error) throw new Error(data.error);
+
+          const combinedGkp = [].concat((data.gkp_main || []), (data.gkp_longtail || []));
+          
+          document.getElementById('gkpCardsContainer').innerHTML = combinedGkp.map(function(k){ return createKeywordCard(k, 'gkp', true); }).join('');
+          document.getElementById('gkpAnalyzedResults').classList.remove('hidden');
+          
+          window.scrollTo({ top: document.getElementById('gkpAnalyzedResults').offsetTop - 20, behavior: 'smooth' });
+
+        } catch (e) {
+          showError("GKP 數據解析失敗，請確保貼上的是完整的表格原始文字。");
+        }
+      }
+
+      function createKeywordCard(item, type, isGKP) {
+        if(isGKP === undefined) isGKP = false;
+        let trendsRowsHtml = '';
+        const coreKeywordsArray = item.core_keywords && item.core_keywords.length > 0 ? item.core_keywords : [item.keyword];
+        
+        coreKeywordsArray.forEach(function(kw) {
+          trendWidgetIdCounter++; 
+          const containerId = "trends-dashboard-" + trendWidgetIdCounter;
+          const encKw = encodeURIComponent(kw).split("'").join("%27");
+          
+          const btnStyle = "text-[11px] md:text-xs font-bold px-2 py-2 md:py-1.5 bg-white border border-gray-200 hover:bg-indigo-100 hover:text-indigo-700 hover:border-indigo-300 rounded shadow-sm transition flex-grow text-center";
+
+          trendsRowsHtml += '<div class="bg-slate-50 p-3 rounded-lg mb-3 border border-slate-100 flex flex-col space-y-3"><span class="text-sm font-bold text-indigo-900 flex items-center"><span class="text-base mr-2">🔍</span>' + kw + '</span><div class="flex flex-wrap gap-2"><button type="button" onclick="renderInlineTrends(\'' + encKw + '\', \'today 12-m\', \'' + containerId + '\'); event.preventDefault(); event.stopPropagation();" class="' + btnStyle + '">近一年</button><button type="button" onclick="renderInlineTrends(\'' + encKw + '\', \'today 3-m\', \'' + containerId + '\'); event.preventDefault(); event.stopPropagation();" class="' + btnStyle + '">近三月</button><button type="button" onclick="renderInlineTrends(\'' + encKw + '\', \'today 1-m\', \'' + containerId + '\'); event.preventDefault(); event.stopPropagation();" class="' + btnStyle + '">近一月</button><button type="button" onclick="renderInlineTrends(\'' + encKw + '\', \'now 7-d\', \'' + containerId + '\'); event.preventDefault(); event.stopPropagation();" class="' + btnStyle + '">近一週</button><button type="button" onclick="renderInlineTrends(\'' + encKw + '\', \'now 1-d\', \'' + containerId + '\'); event.preventDefault(); event.stopPropagation();" class="' + btnStyle + '">本日</button></div><div id="' + containerId + '" class="hidden w-full transition-all duration-300 trends-panel-wrapper" onclick="event.stopPropagation();"></div></div>';
+        });
+
+        let compColor = item.metrics.competition.indexOf('低') !== -1 ? 'text-green-700' : item.metrics.competition.indexOf('高') !== -1 ? 'text-red-700' : 'text-yellow-700';
+        let thirdMetricTitle = isGKP ? '實時出價' : '預估趨勢';
+        let thirdMetricValue = isGKP ? (item.metrics.bid || '未提供') : item.metrics.trend_3m;
+        let thirdMetricColor = isGKP ? 'text-emerald-700' : ((thirdMetricValue.indexOf('+') !== -1 || thirdMetricValue.indexOf('升') !== -1) ? 'text-red-600' : 'text-blue-600');
+        let cardBorderTheme = isGKP ? 'border-emerald-200 hover:border-emerald-400' : 'border-gray-100 hover:border-indigo-300';
+        let iconColor = isGKP ? 'text-emerald-600' : 'text-indigo-600';
+        let badgeHtml = isGKP ? '<span class="inline-block text-[10px] bg-emerald-100 text-emerald-800 px-2 py-1 rounded ml-1 align-top">✔ 真實數據</span>' : '';
+
+        return '<label class="relative cursor-pointer block h-full w-full"><input type="checkbox" class="checkbox-custom absolute opacity-0 w-0 h-0" value="' + item.keyword + '" onchange="toggleKeyword(this)"><div class="bg-white border-2 ' + cardBorderTheme + ' rounded-xl p-4 md:p-5 transition flex flex-col space-y-4"><div class="absolute top-4 right-4 check-icon hidden ' + iconColor + '"><svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></div><div class="pr-8"><h3 class="text-lg md:text-xl font-black text-gray-900 leading-snug">' + item.keyword + badgeHtml + '</h3></div><div class="flex flex-col md:flex-row gap-2 bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-inner"><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-gray-200 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">搜尋量</span><span class="text-sm font-bold text-gray-700">' + item.metrics.volume + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-gray-200 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">競爭度</span><span class="text-sm font-bold ' + compColor + '">' + item.metrics.competition + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center"><span class="text-xs font-bold text-gray-500">' + thirdMetricTitle + '</span><span class="text-sm font-black ' + thirdMetricColor + '">' + thirdMetricValue + '</span></div></div><div class="text-sm text-gray-600 bg-indigo-50/30 p-3 rounded-lg"><span class="font-bold ' + iconColor + ' block mb-1">💡 價值解析：</span>' + item.analysis + '</div><div class="border-t border-gray-100 pt-4"><span class="text-xs font-bold text-gray-500 mb-3 block flex items-center">點擊時間，於下方展開 Google Trends 面 面板：</span><div class="flex flex-col space-y-2">' + trendsRowsHtml + '</div></div></div></label>';
+      }
+
+      function generateStrategy() {
+        const finalKeywords = [].concat(selectedKeywordsList, customKeywordsList);
+        
+        if(finalKeywords.length === 0) {
+          showToast('請至少勾選或輸入一個佈局關鍵字！', true);
+          return;
+        }
+
+        const industry = document.getElementById('industry').value;
+        const painPoint = document.getElementById('painPoint').value;
+        
+        document.getElementById('actionActionBar').classList.add('translate-y-full');
+        document.getElementById('strategyResults').classList.add('hidden');
+        document.getElementById('loading2').classList.remove('hidden');
+        
+        window.scrollTo({ top: document.getElementById('loading2').offsetTop - 20, behavior: 'smooth' });
+
+        fetch(WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'generateContentStrategy', selectedKeywords: finalKeywords, industry, painPoint })
+        })
+        .then(response => response.text())
+        .then(displayStrategy)
+        .catch(showError);
+      }
+
+      function displayStrategy(responseString) {
+        document.getElementById('loading2').classList.add('hidden');
+        try {
+          const data = JSON.parse(responseString);
+          if(data.error) throw new Error(data.error);
+
+          document.getElementById('webArch').innerText = data.website_strategy.architecture;
+          document.getElementById('webSeo').innerText = data.website_strategy.seo_layout;
+          if (data.website_strategy.top_10_tactics) {
+            document.getElementById('webTactics').innerHTML = data.website_strategy.top_10_tactics.map(function(t){ return '<li class="pb-2 border-b border-gray-100 last:border-0">' + t + '</li>'; }).join('');
+          }
+
+          globalBlogData = data.blog_proposals || [];
+          globalSocialData = data.social_proposals || [];
+          
+          currentBlogPage = 1;
+          currentSocialPage = 1;
+
+          renderBlogPage();
+          renderSocialPage();
+
+          document.getElementById('strategyResults').classList.remove('hidden');
+          window.scrollTo({ top: document.getElementById('strategyResults').offsetTop - 20, behavior: 'smooth' });
+
+        } catch (e) { 
+          showError("AI 回傳的資料異常。因為 60 個提案字數極大，若持續失敗請嘗試重新點擊生成。"); 
+        }
+      }
+
+      function renderBlogPage() {
+        const start = (currentBlogPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const currentData = globalBlogData.slice(start, end);
+        const totalPages = Math.ceil(globalBlogData.length / itemsPerPage) || 1;
+
+        document.getElementById('blogCurrentPageTxt').innerText = currentBlogPage;
+        
+        document.getElementById('btnBlogPrev').disabled = (currentBlogPage === 1);
+        document.getElementById('btnBlogPrev').className = currentBlogPage === 1 ? "text-sm font-bold bg-gray-200 text-gray-400 px-4 py-2 rounded cursor-not-allowed" : "text-sm font-bold bg-white text-blue-700 px-4 py-2 rounded shadow-sm hover:bg-blue-50 transition";
+        
+        document.getElementById('btnBlogNext').disabled = (currentBlogPage === totalPages);
+        document.getElementById('btnBlogNext').className = currentBlogPage === totalPages ? "text-sm font-bold bg-gray-200 text-gray-400 px-4 py-2 rounded cursor-not-allowed" : "text-sm font-bold bg-white text-blue-700 px-4 py-2 rounded shadow-sm hover:bg-blue-50 transition";
+
+        document.getElementById('blogProposalsContainer').innerHTML = currentData.map(function(b, i) {
+          const actualRank = start + i + 1; 
+          const absIndex = start + i;
+          const containerId = 'generated-blog-' + absIndex;
+          
+          return '<div class="bg-white p-4 rounded-lg shadow-sm border border-blue-100 flex flex-col space-y-3">' + 
+            '<h4 class="font-black text-lg text-blue-900 leading-snug"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs mr-2">Top ' + actualRank + ' 推薦</span><br class="md:hidden mt-2">' + b.title + '</h4>' + 
+            '<p class="text-sm font-bold text-gray-500">' + b.subtitle + '</p>' + 
+            '<p class="text-sm text-gray-700 leading-relaxed"><span class="font-bold text-blue-700 block mb-1">架構：</span>' + b.outline + '</p>' + 
+            '<p class="text-xs bg-blue-50 text-blue-800 p-3 rounded leading-relaxed"><span class="font-bold block mb-1">🔑 關鍵字佈局：</span>' + b.keyword_placement + '</p>' + 
+            '<div class="pt-2 border-t border-blue-50">' + 
+              '<button onclick="triggerContentGen(\'blog\', ' + absIndex + ', \'' + containerId + '\')" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2 px-4 rounded shadow transition w-full md:w-auto">✨ 讓 AI 幫我寫這篇文章</button>' + 
+            '</div>' + 
+            '<div id="' + containerId + '" class="hidden mt-3 trends-panel-wrapper"></div>' + 
+          '</div>';
+        }).join('');
+      }
+
+      function changeBlogPage(direction) {
+        const totalPages = Math.ceil(globalBlogData.length / itemsPerPage) || 1;
+        currentBlogPage += direction;
+        if(currentBlogPage < 1) currentBlogPage = 1;
+        if(currentBlogPage > totalPages) currentBlogPage = totalPages;
+        renderBlogPage();
+      }
+
+      function renderSocialPage() {
+        const start = (currentSocialPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const currentData = globalSocialData.slice(start, end);
+        const totalPages = Math.ceil(globalSocialData.length / itemsPerPage) || 1;
+
+        document.getElementById('socialCurrentPageTxt').innerText = currentSocialPage;
+        
+        document.getElementById('btnSocialPrev').disabled = (currentSocialPage === 1);
+        document.getElementById('btnSocialPrev').className = currentSocialPage === 1 ? "text-sm font-bold bg-gray-200 text-gray-400 px-4 py-2 rounded cursor-not-allowed" : "text-sm font-bold bg-white text-pink-700 px-4 py-2 rounded shadow-sm hover:bg-pink-50 transition";
+        
+        document.getElementById('btnSocialNext').disabled = (currentSocialPage === totalPages);
+        document.getElementById('btnSocialNext').className = currentSocialPage === totalPages ? "text-sm font-bold bg-gray-200 text-gray-400 px-4 py-2 rounded cursor-not-allowed" : "text-sm font-bold bg-white text-pink-700 px-4 py-2 rounded shadow-sm hover:bg-pink-50 transition";
+
+        document.getElementById('socialProposalsContainer').innerHTML = currentData.map(function(s, i) {
+          const actualRank = start + i + 1; 
+          const absIndex = start + i;
+          const containerId = 'generated-social-' + absIndex;
+          
+          return '<div class="bg-white p-4 rounded-lg shadow-sm border border-pink-100 flex flex-col space-y-3">' + 
+            '<span class="inline-block bg-pink-100 text-pink-800 text-xs font-bold px-3 py-1 rounded self-start">Top ' + actualRank + ' 推薦 - ' + s.platform + '</span>' + 
+            '<p class="text-sm font-bold text-gray-900 leading-relaxed">🪝 ' + s.hook + '</p>' + 
+            '<p class="text-sm text-gray-700 leading-relaxed bg-slate-50 p-2 rounded">' + s.body + '</p>' + 
+            '<p class="text-xs text-blue-500 font-bold tracking-wide">' + s.hashtags + '</p>' + 
+            '<div class="pt-2 border-t border-pink-50">' + 
+              '<button onclick="triggerContentGen(\'social\', ' + absIndex + ', \'' + containerId + '\')" class="bg-pink-600 hover:bg-pink-700 text-white text-sm font-bold py-2 px-4 rounded shadow transition w-full md:w-auto">✨ 讓 AI 幫我寫這則貼文</button>' + 
+            '</div>' + 
+            '<div id="' + containerId + '" class="hidden mt-3 trends-panel-wrapper"></div>' + 
+          '</div>';
+        }).join('');
+      }
+
+      function changeSocialPage(direction) {
+        const totalPages = Math.ceil(globalSocialData.length / itemsPerPage) || 1;
+        currentSocialPage += direction;
+        if(currentSocialPage < 1) currentSocialPage = 1;
+        if(currentSocialPage > totalPages) currentSocialPage = totalPages;
+        renderSocialPage();
+      }
+
+      function triggerContentGen(type, index, containerId) {
+        const container = document.getElementById(containerId);
+        container.classList.remove('hidden');
+        
+        let colorTheme = type === 'blog' ? 'blue' : 'pink';
+        container.innerHTML = '<div class="w-full p-6 flex flex-col items-center justify-center bg-' + colorTheme + '-50/50 rounded-lg border border-' + colorTheme + '-100 shadow-sm"><div class="loader ease-linear rounded-full border-2 border-t-2 border-' + colorTheme + '-500 h-8 w-8 mb-3"></div><span class="text-xs text-' + colorTheme + '-700 font-bold animate-pulse text-center leading-relaxed">AI 靈感湧現中...<br>正在為您撰寫完整內容，請稍候</span></div>';
+
+        const industry = document.getElementById('industry').value;
+        const painPoint = document.getElementById('painPoint').value;
+        let proposalObj = type === 'blog' ? globalBlogData[index] : globalSocialData[index];
+
+        fetch(WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'generateActualPost', type, proposalJsonStr: JSON.stringify(proposalObj), industry, painPoint })
+        })
+        .then(response => response.text())
+        .then(function(res) {
+          container.innerHTML = '<div class="mt-4 bg-slate-50 p-5 rounded-xl border border-slate-300 flex flex-col space-y-4 shadow-xl relative">' + 
+            '<div class="text-sm font-black text-gray-900 border-b border-slate-300 pb-3 flex justify-between items-center sticky top-0 z-10 bg-slate-50">' + 
+              '<span>✍️ AI 生成結果</span>' + 
+              '<button type="button" onclick="document.getElementById(\'' + containerId + '\').classList.add(\'hidden\');" class="text-xs bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1.5 rounded shadow-sm transition font-bold flex items-center">✖ 收合</button>' + 
+            '</div>' + 
+            '<div id="' + containerId + '-content" class="prose prose-sm md:prose-base max-w-none text-gray-800 leading-relaxed bg-white p-4 rounded-lg border border-gray-100">' + res + '</div>' + 
+            '<button type="button" onclick="copyGeneratedContent(\'' + containerId + '-content\', this)" class="w-full text-sm bg-indigo-600 text-white hover:bg-indigo-700 py-3 rounded shadow-sm transition font-bold mt-4">📋 複製文案</button>' +
+            '<button type="button" onclick="document.getElementById(\'' + containerId + '\').classList.add(\'hidden\');" class="w-full text-sm bg-slate-200 text-slate-700 hover:bg-slate-300 py-3 rounded shadow-sm transition font-bold mt-2">⏏️ 關閉面板</button>' + 
+          '</div>';
+        })
+        .catch(function(err) {
+          container.innerHTML = '<div class="p-3 text-red-500 text-xs font-bold bg-red-50 rounded mt-2 text-center border border-red-200">生成失敗，請稍後重試：' + err.message + '</div>';
+        });
+      }
+
+      function showError(error) {
+        document.getElementById('loading1').classList.add('hidden');
+        document.getElementById('loadingGkp').classList.add('hidden');
+        document.getElementById('loading2').classList.add('hidden');
+        const box = document.getElementById('errorBox');
+        box.innerText = "系統發生錯誤：" + (error.message || error);
+        box.classList.remove('hidden');
+      }
+
+      document.addEventListener('click', function(event) {
+        if (event.target.closest('.trends-panel-wrapper') || event.target.closest('button')) {
+            return; 
+        }
+        document.querySelectorAll('.trends-panel-wrapper').forEach(function(panel) {
+            panel.classList.add('hidden');
+        });
+      });
+
+    </script>
+  </body>
+</html>

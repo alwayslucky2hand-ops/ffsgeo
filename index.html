@@ -120,6 +120,10 @@
           </button>
         </div>
 
+        <div class="bg-blue-50 border border-blue-200 text-blue-800 text-xs p-3 rounded-lg shadow-sm leading-relaxed">
+          <span class="font-bold">💡 嚴格排序規則：</span> 1. 搜尋量最大 ➡️ 2. 逐年趨勢最高 ➡️ 3. 近3月趨勢最高 ➡️ 4. 競爭最低。
+        </div>
+
         <div class="flex flex-col space-y-4">
           <h2 class="text-xl font-bold text-gray-800 border-b border-gray-200 pb-2">🔥 AI 預估 - 主要關鍵字</h2>
           <div id="mainKeywords" class="grid grid-cols-1 gap-5"></div>
@@ -133,7 +137,7 @@
 
       <div id="loadingGkp" class="hidden flex flex-col justify-center items-center my-12 border-t border-gray-100 pt-8">
         <div class="loader ease-linear rounded-full border-4 border-t-4 border-emerald-500 h-12 w-12 mb-4"></div>
-        <p class="text-emerald-600 text-sm font-bold animate-pulse text-center">正在依據 [搜尋量 ➡️ 趨勢 ➡️ 競爭度] 進行演算法排名中...</p>
+        <p class="text-emerald-600 text-sm font-bold animate-pulse text-center">正在依據 [搜尋量 ➡️ 逐年趨勢 ➡️ 近3月趨勢 ➡️ 競爭度] 進行演算法排名中...</p>
       </div>
 
       <div id="gkpAnalyzedResults" class="hidden mt-8 pt-8 border-t-2 border-emerald-100 flex flex-col">
@@ -220,7 +224,7 @@
 
     <script type="text/javascript">
       // 🌟 這裡填入你發布的 Google Apps Script Web App 網址
-      const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbytV14yf9rJ8RCitu_OEVKNX7-YzwiCvBr5ik0iZSa8GqV5dZ2mlBG89ZbnZojKuDWE/exec';
+      const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx51sCP2PfqZCJSB9J5LySNNWN0ehYIuz_oR-3lqf35WjRuyC3GOJtSl1fcvBD9MjKV7Q/exec';
 
       let selectedKeywordsList = [];
       let customKeywordsList = []; 
@@ -351,7 +355,7 @@
             btnElement.classList.replace('bg-green-600', 'bg-indigo-600');
             btnElement.classList.replace('hover:bg-green-700', 'hover:bg-indigo-700');
           }, 2000);
-        } catch(err) { showToast('複製失敗，請手動全選複製。', true); }
+        } catch(err) { showToast('複製失敗，請手手動全選複製。', true); }
       }
 
       function renderInlineTrends(keywordEncoded, timeRange, containerId) {
@@ -640,7 +644,7 @@
         return '<label class="relative cursor-pointer block h-full w-full"><input type="checkbox" class="checkbox-custom absolute opacity-0 w-0 h-0" value="' + item.keyword + '" onchange="toggleKeyword(this)"><div class="bg-white border-2 border-gray-100 hover:border-indigo-400 rounded-xl p-4 md:p-5 transition flex flex-col space-y-4"><div class="absolute top-4 right-4 check-icon hidden text-indigo-600"><svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></div><div class="pr-8"><h3 class="text-lg md:text-xl font-black text-gray-900 leading-snug">' + item.keyword + '</h3></div><div class="flex flex-col md:flex-row gap-2 bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-inner"><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-gray-200 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">搜尋量</span><span class="text-sm font-bold text-gray-700">' + item.metrics.volume + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-gray-200 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">競爭度</span><span class="text-sm font-bold ' + compColor + '">' + item.metrics.competition + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center"><span class="text-xs font-bold text-gray-500">預估趨勢</span><span class="text-sm font-black ' + trendColor + '">' + item.metrics.trend_3m + '</span></div></div><div class="text-sm text-gray-600 bg-indigo-50/30 p-3 rounded-lg"><span class="font-bold text-indigo-600 block mb-1">💡 價值解析：</span>' + item.analysis + '</div><div class="border-t border-gray-100 pt-4"><span class="text-xs font-bold text-gray-500 mb-3 block flex items-center">點擊時間，於下方展開 Google Trends 面板：</span><div class="flex flex-col space-y-2">' + trendsRowsHtml + '</div></div></div></label>';
       }
 
-      // 專給 GKP 排行使用的卡片設計 (無合併、帶 Top N 徽章)
+      // 👇 專給 GKP 排行使用的卡片設計 (新增了「逐年趨勢」的 5 欄位顯示)
       function createRankedKeywordCard(item, rank) {
         let trendsRowsHtml = '';
         const coreKeywordsArray = item.core_keywords && item.core_keywords.length > 0 ? item.core_keywords : [item.keyword];
@@ -655,10 +659,11 @@
         });
 
         let compColor = item.metrics.competition.indexOf('低') !== -1 ? 'text-green-700' : item.metrics.competition.indexOf('高') !== -1 ? 'text-red-700' : 'text-yellow-700';
-        let trendColor = item.metrics.trend_3m.indexOf('+') !== -1 ? 'text-red-600' : 'text-slate-700';
+        let trend3mColor = item.metrics.trend_3m.indexOf('+') !== -1 ? 'text-red-600' : 'text-slate-700';
+        let yoyColor = item.metrics.trend_yoy && item.metrics.trend_yoy.indexOf('+') !== -1 ? 'text-red-600' : 'text-slate-700';
         let badgeHtml = '<span class="inline-block text-[11px] md:text-xs bg-emerald-500 text-white font-black px-3 py-1 rounded-full ml-3 shadow-sm align-top">🏆 Top ' + rank + '</span>';
 
-        return '<label class="relative cursor-pointer block h-full w-full"><input type="checkbox" class="checkbox-custom absolute opacity-0 w-0 h-0" value="' + item.keyword + '" onchange="toggleKeyword(this)"><div class="bg-white border-2 border-emerald-200 hover:border-emerald-500 rounded-xl p-4 md:p-5 transition flex flex-col space-y-4 shadow-sm"><div class="absolute top-4 right-4 check-icon hidden text-emerald-600"><svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></div><div class="pr-8"><h3 class="text-lg md:text-xl font-black text-gray-900 leading-snug flex items-center flex-wrap">' + item.keyword + badgeHtml + '</h3></div><div class="flex flex-col md:flex-row gap-2 bg-emerald-50/40 p-3 rounded-lg border border-emerald-100 shadow-inner"><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-emerald-100 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">搜尋量</span><span class="text-sm font-black text-gray-800">' + item.metrics.volume + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-emerald-100 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">3個月趨勢</span><span class="text-sm font-black ' + trendColor + '">' + item.metrics.trend_3m + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-emerald-100 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">競爭度</span><span class="text-sm font-bold ' + compColor + '">' + item.metrics.competition + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center"><span class="text-xs font-bold text-gray-500">出價區間</span><span class="text-xs font-bold text-emerald-700 text-center">' + item.metrics.bid + '</span></div></div><div class="text-sm text-gray-700 bg-slate-50 p-4 rounded-lg border border-slate-100 leading-relaxed"><span class="font-black text-emerald-700 block mb-1">💡 價值解析：</span>' + item.analysis + '</div><div class="border-t border-emerald-50 pt-4"><span class="text-xs font-bold text-gray-500 mb-3 block flex items-center">點擊展開 Google Trends 趨勢：</span><div class="flex flex-col space-y-2">' + trendsRowsHtml + '</div></div></div></label>';
+        return '<label class="relative cursor-pointer block h-full w-full"><input type="checkbox" class="checkbox-custom absolute opacity-0 w-0 h-0" value="' + item.keyword + '" onchange="toggleKeyword(this)"><div class="bg-white border-2 border-emerald-200 hover:border-emerald-500 rounded-xl p-4 md:p-5 transition flex flex-col space-y-4 shadow-sm"><div class="absolute top-4 right-4 check-icon hidden text-emerald-600"><svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></div><div class="pr-8"><h3 class="text-lg md:text-xl font-black text-gray-900 leading-snug flex items-center flex-wrap">' + item.keyword + badgeHtml + '</h3></div><div class="flex flex-col md:flex-row gap-2 bg-emerald-50/40 p-3 rounded-lg border border-emerald-100 shadow-inner flex-wrap"><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-emerald-100 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">搜尋量</span><span class="text-sm font-black text-gray-800">' + item.metrics.volume + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-emerald-100 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">逐年趨勢</span><span class="text-sm font-black ' + yoyColor + '">' + item.metrics.trend_yoy + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-emerald-100 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">近3月趨勢</span><span class="text-sm font-black ' + trend3mColor + '">' + item.metrics.trend_3m + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-emerald-100 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">競爭度</span><span class="text-sm font-bold ' + compColor + '">' + item.metrics.competition + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center"><span class="text-xs font-bold text-gray-500">出價區間</span><span class="text-xs font-bold text-emerald-700 text-center">' + item.metrics.bid + '</span></div></div><div class="text-sm text-gray-700 bg-slate-50 p-4 rounded-lg border border-slate-100 leading-relaxed"><span class="font-black text-emerald-700 block mb-1">💡 價值解析：</span>' + item.analysis + '</div><div class="border-t border-emerald-50 pt-4"><span class="text-xs font-bold text-gray-500 mb-3 block flex items-center">點擊展開 Google Trends 趨勢：</span><div class="flex flex-col space-y-2">' + trendsRowsHtml + '</div></div></div></label>';
       }
 
       function generateStrategy() {

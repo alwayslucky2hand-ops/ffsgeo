@@ -243,6 +243,11 @@
       let currentBlogPage = 1;
       let currentSocialPage = 1;
       const itemsPerPage = 10;
+      
+      // ✅ 為了能還原狀態，新增以下三個全域變數保留原始數據
+      let savedMainKeywords = [];
+      let savedLongtailKeywords = [];
+      let savedWebsiteStrategy = null;
 
       // 監聽並解析 GKP 貼上的資料
       document.getElementById('gkpPasteArea').addEventListener('input', function(e) {
@@ -356,7 +361,7 @@
             btnElement.classList.replace('bg-green-600', 'bg-indigo-600');
             btnElement.classList.replace('hover:bg-green-700', 'hover:bg-indigo-700');
           }, 2000);
-        } catch(err) { showToast('複製失敗，請手手動全選複製。', true); }
+        } catch(err) { showToast('複製失敗，請手動全選複製。', true); }
       }
 
       function renderInlineTrends(keywordEncoded, timeRange, containerId) {
@@ -391,6 +396,7 @@
             customKeywordsList.push(val);
             renderCustomKeywords();
             updateActionBar();
+            saveLocalState(); // ✅ 儲存狀態
           }
           event.target.value = '';
         }
@@ -400,6 +406,7 @@
         customKeywordsList = customKeywordsList.filter(function(k) { return k !== val; });
         renderCustomKeywords();
         updateActionBar();
+        saveLocalState(); // ✅ 儲存狀態
       }
 
       function renderCustomKeywords() {
@@ -416,6 +423,7 @@
           selectedKeywordsList = selectedKeywordsList.filter(function(k) { return k !== checkbox.value; });
         }
         updateActionBar();
+        saveLocalState(); // ✅ 儲存狀態
       }
 
       function updateActionBar() {
@@ -535,11 +543,17 @@
           }
           allGeneratedKeywordsForGKP = uniqueWords;
 
+          // ✅ 將資料存進全域變數，以便還原狀態
+          savedMainKeywords = sortedMain;
+          savedLongtailKeywords = sortedLong;
+
           document.getElementById('mainKeywords').innerHTML = sortedMain.map(function(k){ return createKeywordCard(k); }).join('');
           document.getElementById('longtailKeywords').innerHTML = sortedLong.map(function(k){ return createKeywordCard(k); }).join('');
           
           document.getElementById('keywordResults').classList.remove('hidden');
           document.getElementById('customKwSection').classList.remove('hidden');
+          
+          saveLocalState(); // ✅ 儲存狀態
         } catch (e) { 
           showError("AI 回傳的資料異常，建議調降數量再試一次。"); 
         }
@@ -584,6 +598,8 @@
           
           window.scrollTo({ top: document.getElementById('gkpAnalyzedResults').offsetTop - 20, behavior: 'smooth' });
 
+          saveLocalState(); // ✅ 儲存狀態
+
         } catch (e) {
           showError("GKP 數據解析失敗：" + e.message);
         }
@@ -615,6 +631,7 @@
         if(currentGkpPage < 1) currentGkpPage = 1;
         if(currentGkpPage > totalPages) currentGkpPage = totalPages;
         renderGkpPage();
+        saveLocalState(); // ✅ 儲存狀態
       }
 
       function createKeywordCard(item) {
@@ -632,8 +649,11 @@
 
         let compColor = item.metrics.competition.indexOf('低') !== -1 ? 'text-green-700' : item.metrics.competition.indexOf('高') !== -1 ? 'text-red-700' : 'text-yellow-700';
         let trendColor = (item.metrics.trend_3m.indexOf('+') !== -1 || item.metrics.trend_3m.indexOf('升') !== -1) ? 'text-red-600' : 'text-blue-600';
+        
+        // ✅ 判斷此關鍵字是否已在選擇清單中
+        let isChecked = selectedKeywordsList.indexOf(item.keyword) !== -1 ? 'checked' : '';
 
-        return '<label class="relative cursor-pointer block h-full w-full"><input type="checkbox" class="checkbox-custom absolute opacity-0 w-0 h-0" value="' + item.keyword + '" onchange="toggleKeyword(this)"><div class="bg-white border-2 border-gray-100 hover:border-indigo-400 rounded-xl p-4 md:p-5 transition flex flex-col space-y-4"><div class="absolute top-4 right-4 check-icon hidden text-indigo-600"><svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></div><div class="pr-8"><h3 class="text-lg md:text-xl font-black text-gray-900 leading-snug">' + item.keyword + '</h3></div><div class="flex flex-col md:flex-row gap-2 bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-inner"><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-gray-200 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">搜尋量</span><span class="text-sm font-bold text-gray-700">' + item.metrics.volume + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-gray-200 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">競爭度</span><span class="text-sm font-bold ' + compColor + '">' + item.metrics.competition + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center"><span class="text-xs font-bold text-gray-500">預估趨勢</span><span class="text-sm font-black ' + trendColor + '">' + item.metrics.trend_3m + '</span></div></div><div class="text-sm text-gray-600 bg-indigo-50/30 p-3 rounded-lg"><span class="font-bold text-indigo-600 block mb-1">💡 價值解析：</span>' + item.analysis + '</div><div class="border-t border-gray-100 pt-4"><span class="text-xs font-bold text-gray-500 mb-3 block flex items-center">點擊時間，於下方展開 Google Trends 面板：</span><div class="flex flex-col space-y-2">' + trendsRowsHtml + '</div></div></div></label>';
+        return '<label class="relative cursor-pointer block h-full w-full"><input type="checkbox" class="checkbox-custom absolute opacity-0 w-0 h-0" value="' + item.keyword + '" onchange="toggleKeyword(this)" ' + isChecked + '><div class="bg-white border-2 border-gray-100 hover:border-indigo-400 rounded-xl p-4 md:p-5 transition flex flex-col space-y-4"><div class="absolute top-4 right-4 check-icon hidden text-indigo-600"><svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></div><div class="pr-8"><h3 class="text-lg md:text-xl font-black text-gray-900 leading-snug">' + item.keyword + '</h3></div><div class="flex flex-col md:flex-row gap-2 bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-inner"><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-gray-200 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">搜尋量</span><span class="text-sm font-bold text-gray-700">' + item.metrics.volume + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-gray-200 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">競爭度</span><span class="text-sm font-bold ' + compColor + '">' + item.metrics.competition + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center"><span class="text-xs font-bold text-gray-500">預估趨勢</span><span class="text-sm font-black ' + trendColor + '">' + item.metrics.trend_3m + '</span></div></div><div class="text-sm text-gray-600 bg-indigo-50/30 p-3 rounded-lg"><span class="font-bold text-indigo-600 block mb-1">💡 價值解析：</span>' + item.analysis + '</div><div class="border-t border-gray-100 pt-4"><span class="text-xs font-bold text-gray-500 mb-3 block flex items-center">點擊時間，於下方展開 Google Trends 面板：</span><div class="flex flex-col space-y-2">' + trendsRowsHtml + '</div></div></div></label>';
       }
 
       function createRankedKeywordCard(item, rank) {
@@ -654,7 +674,10 @@
         let yoyColor = item.metrics.trend_yoy && item.metrics.trend_yoy.indexOf('+') !== -1 ? 'text-red-600' : 'text-slate-700';
         let badgeHtml = '<span class="inline-block text-[11px] md:text-xs bg-emerald-500 text-white font-black px-3 py-1 rounded-full ml-3 shadow-sm align-top">🏆 Top ' + rank + '</span>';
 
-        return '<label class="relative cursor-pointer block h-full w-full"><input type="checkbox" class="checkbox-custom absolute opacity-0 w-0 h-0" value="' + item.keyword + '" onchange="toggleKeyword(this)"><div class="bg-white border-2 border-emerald-200 hover:border-emerald-500 rounded-xl p-4 md:p-5 transition flex flex-col space-y-4 shadow-sm"><div class="absolute top-4 right-4 check-icon hidden text-emerald-600"><svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></div><div class="pr-8"><h3 class="text-lg md:text-xl font-black text-gray-900 leading-snug flex items-center flex-wrap">' + item.keyword + badgeHtml + '</h3></div><div class="flex flex-col md:flex-row gap-2 bg-emerald-50/40 p-3 rounded-lg border border-emerald-100 shadow-inner flex-wrap"><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-emerald-100 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">搜尋量</span><span class="text-sm font-black text-gray-800">' + item.metrics.volume + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-emerald-100 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">逐年趨勢</span><span class="text-sm font-black ' + yoyColor + '">' + item.metrics.trend_yoy + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-emerald-100 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">近3月趨勢</span><span class="text-sm font-black ' + trend3mColor + '">' + item.metrics.trend_3m + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-emerald-100 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">競爭度</span><span class="text-sm font-bold ' + compColor + '">' + item.metrics.competition + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center"><span class="text-xs font-bold text-gray-500">出價區間</span><span class="text-xs font-bold text-emerald-700 text-center">' + item.metrics.bid + '</span></div></div><div class="text-sm text-gray-700 bg-slate-50 p-4 rounded-lg border border-slate-100 leading-relaxed"><span class="font-black text-emerald-700 block mb-1">💡 價值解析：</span>' + item.analysis + '</div><div class="border-t border-emerald-50 pt-4"><span class="text-xs font-bold text-gray-500 mb-3 block flex items-center">點擊展開 Google Trends 趨勢：</span><div class="flex flex-col space-y-2">' + trendsRowsHtml + '</div></div></div></label>';
+        // ✅ 判斷此關鍵字是否已在選擇清單中
+        let isChecked = selectedKeywordsList.indexOf(item.keyword) !== -1 ? 'checked' : '';
+
+        return '<label class="relative cursor-pointer block h-full w-full"><input type="checkbox" class="checkbox-custom absolute opacity-0 w-0 h-0" value="' + item.keyword + '" onchange="toggleKeyword(this)" ' + isChecked + '><div class="bg-white border-2 border-emerald-200 hover:border-emerald-500 rounded-xl p-4 md:p-5 transition flex flex-col space-y-4 shadow-sm"><div class="absolute top-4 right-4 check-icon hidden text-emerald-600"><svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></div><div class="pr-8"><h3 class="text-lg md:text-xl font-black text-gray-900 leading-snug flex items-center flex-wrap">' + item.keyword + badgeHtml + '</h3></div><div class="flex flex-col md:flex-row gap-2 bg-emerald-50/40 p-3 rounded-lg border border-emerald-100 shadow-inner flex-wrap"><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-emerald-100 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">搜尋量</span><span class="text-sm font-black text-gray-800">' + item.metrics.volume + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-emerald-100 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">逐年趨勢</span><span class="text-sm font-black ' + yoyColor + '">' + item.metrics.trend_yoy + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-emerald-100 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">近3月趨勢</span><span class="text-sm font-black ' + trend3mColor + '">' + item.metrics.trend_3m + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-emerald-100 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">競爭度</span><span class="text-sm font-bold ' + compColor + '">' + item.metrics.competition + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center"><span class="text-xs font-bold text-gray-500">出價區間</span><span class="text-xs font-bold text-emerald-700 text-center">' + item.metrics.bid + '</span></div></div><div class="text-sm text-gray-700 bg-slate-50 p-4 rounded-lg border border-slate-100 leading-relaxed"><span class="font-black text-emerald-700 block mb-1">💡 價值解析：</span>' + item.analysis + '</div><div class="border-t border-emerald-50 pt-4"><span class="text-xs font-bold text-gray-500 mb-3 block flex items-center">點擊展開 Google Trends 趨勢：</span><div class="flex flex-col space-y-2">' + trendsRowsHtml + '</div></div></div></label>';
       }
 
       function generateStrategy() {
@@ -689,6 +712,9 @@
           const data = JSON.parse(responseString);
           if(data.error) throw new Error(data.error);
 
+          // ✅ 儲存原有的提案 JSON
+          savedWebsiteStrategy = data.website_strategy;
+
           document.getElementById('webArch').innerText = data.website_strategy.architecture;
           document.getElementById('webSeo').innerText = data.website_strategy.seo_layout;
           if (data.website_strategy.top_10_tactics) {
@@ -706,6 +732,8 @@
 
           document.getElementById('strategyResults').classList.remove('hidden');
           window.scrollTo({ top: document.getElementById('strategyResults').offsetTop - 20, behavior: 'smooth' });
+
+          saveLocalState(); // ✅ 儲存狀態
 
         } catch (e) { 
           showError("AI 回傳的資料異常。因為 60 個提案字數極大，若持續失敗請嘗試重新點擊生成。"); 
@@ -750,6 +778,7 @@
         if(currentBlogPage < 1) currentBlogPage = 1;
         if(currentBlogPage > totalPages) currentBlogPage = totalPages;
         renderBlogPage();
+        saveLocalState(); // ✅ 儲存狀態
       }
 
       function renderSocialPage() {
@@ -790,6 +819,7 @@
         if(currentSocialPage < 1) currentSocialPage = 1;
         if(currentSocialPage > totalPages) currentSocialPage = totalPages;
         renderSocialPage();
+        saveLocalState(); // ✅ 儲存狀態
       }
 
       function triggerContentGen(type, index, containerId) {
@@ -839,6 +869,118 @@
         }
         document.querySelectorAll('.trends-panel-wrapper').forEach(function(panel) {
             panel.classList.add('hidden');
+        });
+      });
+
+      // ==========================================
+      // ✅ 以下為全新添加的資料留存與還原機制
+      // ==========================================
+
+      // 儲存狀態至本地瀏覽器
+      function saveLocalState() {
+        const state = {
+          industry: document.getElementById('industry').value,
+          painPoint: document.getElementById('painPoint').value,
+          mainCount: document.getElementById('mainCount').value,
+          longCount: document.getElementById('longCount').value,
+          gkpPasteArea: document.getElementById('gkpPasteArea').value,
+          selectedKeywordsList: selectedKeywordsList,
+          customKeywordsList: customKeywordsList,
+          allGeneratedKeywordsForGKP: allGeneratedKeywordsForGKP,
+          parsedGKPData: parsedGKPData,
+          globalGkpData: globalGkpData,
+          currentGkpPage: currentGkpPage,
+          globalBlogData: globalBlogData,
+          globalSocialData: globalSocialData,
+          currentBlogPage: currentBlogPage,
+          currentSocialPage: currentSocialPage,
+          savedMainKeywords: savedMainKeywords,
+          savedLongtailKeywords: savedLongtailKeywords,
+          savedWebsiteStrategy: savedWebsiteStrategy
+        };
+        localStorage.setItem('seoAutoPlatformState', JSON.stringify(state));
+      }
+
+      // 從本地瀏覽器還原狀態
+      function restoreLocalState() {
+        const stateStr = localStorage.getItem('seoAutoPlatformState');
+        if (!stateStr) return;
+
+        try {
+          const state = JSON.parse(stateStr);
+          
+          // 1. 恢復所有輸入框
+          if (state.industry) document.getElementById('industry').value = state.industry;
+          if (state.painPoint) document.getElementById('painPoint').value = state.painPoint;
+          if (state.mainCount) document.getElementById('mainCount').value = state.mainCount;
+          if (state.longCount) document.getElementById('longCount').value = state.longCount;
+          
+          if (state.gkpPasteArea) {
+            document.getElementById('gkpPasteArea').value = state.gkpPasteArea;
+            // 觸發 input 事件，讓表格自動預覽
+            document.getElementById('gkpPasteArea').dispatchEvent(new Event('input')); 
+          }
+
+          // 2. 恢復所有 JS 變數
+          selectedKeywordsList = state.selectedKeywordsList || [];
+          customKeywordsList = state.customKeywordsList || [];
+          allGeneratedKeywordsForGKP = state.allGeneratedKeywordsForGKP || [];
+          parsedGKPData = state.parsedGKPData || [];
+          globalGkpData = state.globalGkpData || [];
+          currentGkpPage = state.currentGkpPage || 1;
+          globalBlogData = state.globalBlogData || [];
+          globalSocialData = state.globalSocialData || [];
+          currentBlogPage = state.currentBlogPage || 1;
+          currentSocialPage = state.currentSocialPage || 1;
+          savedMainKeywords = state.savedMainKeywords || [];
+          savedLongtailKeywords = state.savedLongtailKeywords || [];
+          savedWebsiteStrategy = state.savedWebsiteStrategy || null;
+
+          // 3. 恢復 Phase 1 的畫面
+          if (savedMainKeywords.length > 0 || savedLongtailKeywords.length > 0) {
+            document.getElementById('mainKeywords').innerHTML = savedMainKeywords.map(function(k){ return createKeywordCard(k); }).join('');
+            document.getElementById('longtailKeywords').innerHTML = savedLongtailKeywords.map(function(k){ return createKeywordCard(k); }).join('');
+            document.getElementById('keywordResults').classList.remove('hidden');
+            document.getElementById('customKwSection').classList.remove('hidden');
+            renderCustomKeywords();
+            updateActionBar();
+          }
+
+          // 4. 恢復 Phase 1.5 的畫面
+          if (globalGkpData.length > 0) {
+            renderGkpPage();
+            document.getElementById('gkpAnalyzedResults').classList.remove('hidden');
+          }
+
+          // 5. 恢復 Phase 2 的畫面
+          if (savedWebsiteStrategy && (globalBlogData.length > 0 || globalSocialData.length > 0)) {
+            document.getElementById('webArch').innerText = savedWebsiteStrategy.architecture;
+            document.getElementById('webSeo').innerText = savedWebsiteStrategy.seo_layout;
+            if (savedWebsiteStrategy.top_10_tactics) {
+              document.getElementById('webTactics').innerHTML = savedWebsiteStrategy.top_10_tactics.map(function(t){ return '<li class="pb-2 border-b border-gray-100 last:border-0">' + t + '</li>'; }).join('');
+            }
+            renderBlogPage();
+            renderSocialPage();
+            document.getElementById('strategyResults').classList.remove('hidden');
+          }
+
+        } catch (e) {
+          console.error("狀態還原失敗：", e);
+        }
+      }
+
+      // 當網頁載入完成時，立刻執行還原機制，並綁定輸入框的自動儲存事件
+      document.addEventListener('DOMContentLoaded', function() {
+        restoreLocalState();
+        
+        // 監聽文字框和數字框，一旦有打字或變更就儲存
+        const inputs = ['industry', 'painPoint', 'mainCount', 'longCount', 'gkpPasteArea'];
+        inputs.forEach(id => {
+          const el = document.getElementById(id);
+          if(el) {
+            el.addEventListener('input', saveLocalState);
+            el.addEventListener('change', saveLocalState);
+          }
         });
       });
 

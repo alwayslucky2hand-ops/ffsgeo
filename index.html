@@ -116,7 +116,7 @@
           </div>
 
           <button onclick="analyzeGKPDataFlow()" class="w-full bg-emerald-600 text-white font-bold py-4 px-4 rounded-lg hover:bg-emerald-700 transition shadow-md">
-            ✨ 確認無誤，產生 Top 30 黃金字詞排行
+            ✨ 確認無誤，產生所有字詞排行
           </button>
         </div>
 
@@ -142,13 +142,13 @@
 
       <div id="gkpAnalyzedResults" class="hidden mt-8 pt-8 border-t-2 border-emerald-100 flex flex-col">
         <div class="bg-emerald-600 text-white p-4 rounded-t-xl flex justify-between items-center shadow-md">
-          <h2 class="text-lg md:text-xl font-black">💎 GKP 嚴選排行 (Top 30)</h2>
+          <h2 class="text-lg md:text-xl font-black">💎 GKP 嚴選排行 (全量數據)</h2>
           <span class="text-xs bg-emerald-800 px-2 py-1 rounded">1頁10筆</span>
         </div>
         <div id="gkpCardsContainer" class="bg-emerald-50/50 p-4 border-x border-emerald-100 flex flex-col space-y-5"></div>
         <div class="bg-emerald-100 border-b border-x border-emerald-200 rounded-b-xl p-4 flex justify-between items-center shadow-inner">
           <button onclick="changeGkpPage(-1)" id="btnGkpPrev" class="text-sm font-bold bg-white text-emerald-700 px-4 md:px-5 py-2 rounded-lg shadow hover:bg-emerald-50 transition">上一頁</button>
-          <span class="text-sm font-bold text-emerald-900 bg-white px-4 py-1.5 rounded-full shadow-sm">第 <span id="gkpCurrentPageTxt">1</span> / 3 頁</span>
+          <span class="text-sm font-bold text-emerald-900 bg-white px-4 py-1.5 rounded-full shadow-sm">第 <span id="gkpCurrentPageTxt">1</span> 頁</span>
           <button onclick="changeGkpPage(1)" id="btnGkpNext" class="text-sm font-bold bg-white text-emerald-700 px-4 md:px-5 py-2 rounded-lg shadow hover:bg-emerald-50 transition">下一頁</button>
         </div>
       </div>
@@ -192,7 +192,7 @@
           <div class="bg-blue-50/30 p-4 border-x border-blue-100 flex flex-col space-y-4" id="blogProposalsContainer"></div>
           <div class="bg-blue-100 border-b border-x border-blue-200 rounded-b-lg p-3 flex justify-between items-center">
             <button onclick="changeBlogPage(-1)" id="btnBlogPrev" class="text-sm font-bold bg-white text-blue-700 px-4 py-2 rounded shadow-sm hover:bg-blue-50 transition">上一頁</button>
-            <span class="text-sm font-bold text-blue-900">第 <span id="blogCurrentPageTxt">1</span> / 3 頁</span>
+            <span class="text-sm font-bold text-blue-900">第 <span id="blogCurrentPageTxt">1</span> 頁</span>
             <button onclick="changeBlogPage(1)" id="btnBlogNext" class="text-sm font-bold bg-white text-blue-700 px-4 py-2 rounded shadow-sm hover:bg-blue-50 transition">下一頁</button>
           </div>
         </div>
@@ -204,7 +204,7 @@
           <div class="bg-pink-50/30 p-4 border-x border-pink-100 flex flex-col space-y-4" id="socialProposalsContainer"></div>
           <div class="bg-pink-100 border-b border-x border-pink-200 rounded-b-lg p-3 flex justify-between items-center">
             <button onclick="changeSocialPage(-1)" id="btnSocialPrev" class="text-sm font-bold bg-white text-pink-700 px-4 py-2 rounded shadow-sm hover:bg-pink-50 transition">上一頁</button>
-            <span class="text-sm font-bold text-pink-900">第 <span id="socialCurrentPageTxt">1</span> / 3 頁</span>
+            <span class="text-sm font-bold text-pink-900">第 <span id="socialCurrentPageTxt">1</span> 頁</span>
             <button onclick="changeSocialPage(1)" id="btnSocialNext" class="text-sm font-bold bg-white text-pink-700 px-4 py-2 rounded shadow-sm hover:bg-pink-50 transition">下一頁</button>
           </div>
         </div>
@@ -224,7 +224,7 @@
 
     <script type="text/javascript">
       // 🌟 這裡填入你發布的 Google Apps Script Web App 網址
-      const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbx51sCP2PfqZCJSB9J5LySNNWN0ehYIuz_oR-3lqf35WjRuyC3GOJtSl1fcvBD9MjKV7Q/exec';
+      const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz6zlIDdOkopVXYJi6SrSc1w6uxT_7CpltiblNVHNjgg5EKCGDRo6yf1wYmGbyDRDjs5w/exec';
 
       let selectedKeywordsList = [];
       let customKeywordsList = []; 
@@ -316,7 +316,8 @@
 
       function copyAndOpenGKP() {
         if (allGeneratedKeywordsForGKP.length === 0) return;
-        const textToCopy = allGeneratedKeywordsForGKP.join(String.fromCharCode(10)); 
+        // ✨ 修改點：改用 \r\n 確保任何作業系統和瀏覽器貼上 GKP 時都會完美斷行
+        const textToCopy = allGeneratedKeywordsForGKP.map(w => w.trim()).join('\r\n'); 
         
         navigator.clipboard.writeText(textToCopy).then(function() {
           const btnText = document.getElementById('copyGKPText');
@@ -507,39 +508,32 @@
           let extractionPool = [];
           
           data.main_keywords.forEach(function(item) {
-            extractionPool.push({ word: item.keyword, metrics: item.metrics });
+            extractionPool.push(item.keyword);
+            if (item.core_keywords && item.core_keywords.length > 0) {
+              item.core_keywords.forEach(function(coreWord) {
+                extractionPool.push(coreWord);
+              });
+            }
           });
           
           data.longtail_keywords.forEach(function(item) {
-            extractionPool.push({ word: item.keyword, metrics: item.metrics });
+            extractionPool.push(item.keyword);
             if (item.core_keywords && item.core_keywords.length > 0) {
               item.core_keywords.forEach(function(coreWord) {
-                extractionPool.push({ word: coreWord, metrics: item.metrics });
+                extractionPool.push(coreWord);
               });
             }
           });
 
-          extractionPool.sort(function(a, b) {
-            let tA = parseTrend(a.metrics.trend_3m);
-            let tB = parseTrend(b.metrics.trend_3m);
-            if (tA !== tB) return tB - tA;
-            let cA = parseComp(a.metrics.competition);
-            let cB = parseComp(b.metrics.competition);
-            if (cA !== cB) return cA - cB;
-            let vA = parseVol(a.metrics.volume);
-            let vB = parseVol(b.metrics.volume);
-            return vB - vA;
-          });
-
-          let allWords = [];
+          // ✨ 確保去重複
+          let uniqueWords = [];
           for (let i = 0; i < extractionPool.length; i++) {
-            let w = extractionPool[i].word;
-            if (allWords.indexOf(w) === -1) {
-              allWords.push(w);
+            let w = extractionPool[i].trim();
+            if (uniqueWords.indexOf(w) === -1 && w !== "") {
+              uniqueWords.push(w);
             }
           }
-          
-          allGeneratedKeywordsForGKP = allWords;
+          allGeneratedKeywordsForGKP = uniqueWords;
 
           document.getElementById('mainKeywords').innerHTML = sortedMain.map(function(k){ return createKeywordCard(k); }).join('');
           document.getElementById('longtailKeywords').innerHTML = sortedLong.map(function(k){ return createKeywordCard(k); }).join('');
@@ -576,7 +570,6 @@
         .catch(showError);
       }
 
-      // 處理 GKP 排行分頁邏輯
       function displayGkpResults(responseString) {
         document.getElementById('loadingGkp').classList.add('hidden');
         try {
@@ -602,7 +595,8 @@
         const currentData = globalGkpData.slice(start, end);
         const totalPages = Math.ceil(globalGkpData.length / gkpItemsPerPage) || 1;
 
-        document.getElementById('gkpCurrentPageTxt').innerText = currentGkpPage;
+        // ✨ 修改分頁文字的顯示邏輯，不再寫死 "/ 3 頁"
+        document.getElementById('gkpCurrentPageTxt').innerText = currentGkpPage + " / " + totalPages;
         
         document.getElementById('btnGkpPrev').disabled = (currentGkpPage === 1);
         document.getElementById('btnGkpPrev').className = currentGkpPage === 1 ? "text-sm font-bold bg-emerald-100 text-emerald-400 px-4 md:px-5 py-2 rounded-lg cursor-not-allowed opacity-50" : "text-sm font-bold bg-white text-emerald-700 px-4 md:px-5 py-2 rounded-lg shadow-sm hover:bg-emerald-50 transition";
@@ -610,7 +604,6 @@
         document.getElementById('btnGkpNext').disabled = (currentGkpPage === totalPages);
         document.getElementById('btnGkpNext').className = currentGkpPage === totalPages ? "text-sm font-bold bg-emerald-100 text-emerald-400 px-4 md:px-5 py-2 rounded-lg cursor-not-allowed opacity-50" : "text-sm font-bold bg-white text-emerald-700 px-4 md:px-5 py-2 rounded-lg shadow-sm hover:bg-emerald-50 transition";
 
-        // 渲染專屬的排行卡片
         document.getElementById('gkpCardsContainer').innerHTML = currentData.map(function(item) {
           return createRankedKeywordCard(item, item.rank);
         }).join('');
@@ -624,7 +617,6 @@
         renderGkpPage();
       }
 
-      // 專給 Phase 1 預估用 (無排行榜)
       function createKeywordCard(item) {
         let trendsRowsHtml = '';
         const coreKeywordsArray = item.core_keywords && item.core_keywords.length > 0 ? item.core_keywords : [item.keyword];
@@ -644,7 +636,6 @@
         return '<label class="relative cursor-pointer block h-full w-full"><input type="checkbox" class="checkbox-custom absolute opacity-0 w-0 h-0" value="' + item.keyword + '" onchange="toggleKeyword(this)"><div class="bg-white border-2 border-gray-100 hover:border-indigo-400 rounded-xl p-4 md:p-5 transition flex flex-col space-y-4"><div class="absolute top-4 right-4 check-icon hidden text-indigo-600"><svg class="w-6 h-6 md:w-8 md:h-8" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg></div><div class="pr-8"><h3 class="text-lg md:text-xl font-black text-gray-900 leading-snug">' + item.keyword + '</h3></div><div class="flex flex-col md:flex-row gap-2 bg-gray-50 p-3 rounded-lg border border-gray-200 shadow-inner"><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-gray-200 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">搜尋量</span><span class="text-sm font-bold text-gray-700">' + item.metrics.volume + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center border-b md:border-b-0 md:border-r border-gray-200 pb-2 md:pb-0 md:pr-2"><span class="text-xs font-bold text-gray-500">競爭度</span><span class="text-sm font-bold ' + compColor + '">' + item.metrics.competition + '</span></div><div class="flex-1 flex justify-between md:flex-col md:items-center"><span class="text-xs font-bold text-gray-500">預估趨勢</span><span class="text-sm font-black ' + trendColor + '">' + item.metrics.trend_3m + '</span></div></div><div class="text-sm text-gray-600 bg-indigo-50/30 p-3 rounded-lg"><span class="font-bold text-indigo-600 block mb-1">💡 價值解析：</span>' + item.analysis + '</div><div class="border-t border-gray-100 pt-4"><span class="text-xs font-bold text-gray-500 mb-3 block flex items-center">點擊時間，於下方展開 Google Trends 面板：</span><div class="flex flex-col space-y-2">' + trendsRowsHtml + '</div></div></div></label>';
       }
 
-      // 👇 專給 GKP 排行使用的卡片設計 (新增了「逐年趨勢」的 5 欄位顯示)
       function createRankedKeywordCard(item, rank) {
         let trendsRowsHtml = '';
         const coreKeywordsArray = item.core_keywords && item.core_keywords.length > 0 ? item.core_keywords : [item.keyword];
@@ -727,7 +718,7 @@
         const currentData = globalBlogData.slice(start, end);
         const totalPages = Math.ceil(globalBlogData.length / itemsPerPage) || 1;
 
-        document.getElementById('blogCurrentPageTxt').innerText = currentBlogPage;
+        document.getElementById('blogCurrentPageTxt').innerText = currentBlogPage + " / " + totalPages;
         
         document.getElementById('btnBlogPrev').disabled = (currentBlogPage === 1);
         document.getElementById('btnBlogPrev').className = currentBlogPage === 1 ? "text-sm font-bold bg-gray-200 text-gray-400 px-4 py-2 rounded cursor-not-allowed" : "text-sm font-bold bg-white text-blue-700 px-4 py-2 rounded shadow-sm hover:bg-blue-50 transition";
@@ -767,7 +758,7 @@
         const currentData = globalSocialData.slice(start, end);
         const totalPages = Math.ceil(globalSocialData.length / itemsPerPage) || 1;
 
-        document.getElementById('socialCurrentPageTxt').innerText = currentSocialPage;
+        document.getElementById('socialCurrentPageTxt').innerText = currentSocialPage + " / " + totalPages;
         
         document.getElementById('btnSocialPrev').disabled = (currentSocialPage === 1);
         document.getElementById('btnSocialPrev').className = currentSocialPage === 1 ? "text-sm font-bold bg-gray-200 text-gray-400 px-4 py-2 rounded cursor-not-allowed" : "text-sm font-bold bg-white text-pink-700 px-4 py-2 rounded shadow-sm hover:bg-pink-50 transition";
